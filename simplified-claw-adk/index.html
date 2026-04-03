@@ -1,0 +1,390 @@
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#4F7DC9">
+  <meta charset="UTF-8">
+  <title>Building Simplified Claw with ADK</title>
+  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Code+Pro:400|Roboto:400,300,400italic,500,700|Roboto+Mono">
+  <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://storage.googleapis.com/claat-public/codelab-elements.css">
+  <style>
+    .success {
+      color: #1e8e3e;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <google-codelab-analytics gaid="UA-49880327-14" ga4id=""></google-codelab-analytics>
+  <google-codelab codelab-gaid=""
+                  codelab-ga4id=""
+                  id="simplified-claw-adk"
+                  title="Building Simplified Claw with ADK"
+                  environment="web"
+                  feedback-link="">
+    
+      <google-codelab-step label="Introduction" duration="0">
+        <p class="image-container"><img style="width: 624.00px" src="img/dc4e8832023298ca.jpeg"></p>
+<p><strong>Last Updated:</strong> 2026-04-11</p>
+<h2 is-upgraded><strong>What is Claw?</strong></h2>
+<p>You might have heard of OpenClaw. Yes, it is #1 open source project right now which helps everyone to have its own agent running on their local computer or VPS to do many things on users behalf. With claw, you technically can instruct your agent to do many things like checking your email, draft and send email to your friends, manage your calendar, create documents and even do coding.</p>
+<h2 is-upgraded><strong>What you&#39;ll build</strong></h2>
+<p>In this codelab, you are going to create a simplified version of OpenClaw agent which can interact with your Google Calendar to manage your schedule, Google Spreadsheet to record your monthly expenses and many more. We will utilize Google ADK and its quite recent Skill supported features to build this as well as newer Google Workspace CLI. Due to time constraints, we are going to exclude agent interfaces like Whatsapp, Telegram, etc., and rely only on ADK Web UI.</p>
+<h2 class="checklist" is-upgraded><strong>What you&#39;ll learn</strong></h2>
+<ul class="checklist">
+<li><strong>✅ </strong>How to create an AI agent with Google ADK</li>
+<li><strong>✅ </strong>How to build bash tools for agent to access our system</li>
+<li><strong>✅ </strong>How to setup Google Workspace CLI (GWS) for interacting with Workspace API</li>
+<li><strong>✅ </strong>How to integrate GWS CLI with Google ADK using ADK Skill Tool Set</li>
+</ul>
+<h2 is-upgraded><strong>What you&#39;ll need</strong></h2>
+<ul>
+<li>A valid google account</li>
+<li>A google cloud project with workshop credit applied</li>
+<li>Python and uv installed</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Setting Up Google Cloud Account" duration="0">
+        <aside class="special"><p>IMPORTANT NOTES:</p>
+<p>This tutorial requires a Google Cloud Project with an active billing account. If you do not have one yet, please follow the steps below to get a trial billing account that can be used for this tutorial:</p>
+<ol type="1" start="1">
+<li>Open incognito window</li>
+<li>If you are joining a workshop session, the redemption portal URL usually will be provided in the session, otherwise you can navigate to this <a href="https://goo.gle/amtp2-trial-credits" target="_blank">trial billing account redemption portal</a></li>
+<li>Log in using your personal gmail account ( Google Workspace / other emails won&#39;t work! )</li>
+<li>Follow the step by step <a href="http://goo.gle/handson-setup" target="_blank">redemption instructions</a> to successfully create a new Google Cloud project which linked to previously claimed trial billing account for this tutorial</li>
+</ol>
+</aside>
+<h2 is-upgraded><strong>Step 1: Select Active Project in the Cloud Console</strong></h2>
+<p>In the Google Cloud Console, on the project selector page, select or create a Google Cloud project (see top left section of your console)</p>
+<p class="image-container"><img alt="6069be756af6452b.png" style="width: 499.00px" src="img/6069be756af6452b.png"></p>
+<p>Click on it, and you will see list of all of your project like this example,</p>
+<p class="image-container"><img alt="dd8fcf0428ab868f.png" style="width: 624.00px" src="img/dd8fcf0428ab868f.png"></p>
+<p>The value that is indicated by the red box is the <strong>PROJECT ID</strong> and this value will be used throughout the tutorial.</p>
+<p>Make sure that billing is enabled for your Cloud project. To check this, click on the burger icon ☰ on your top left bar which shows the Navigation Menu and find the Billing menu</p>
+<p class="image-container"><img alt="db07810b26fc61d6.png" style="width: 474.00px" src="img/db07810b26fc61d6.png"></p>
+<p>If you see the &#34;Google Cloud Platform Trial Billing Account&#34; under the Billing / Overview title ( top left section of your cloud console ), your project is ready to be utilized for this tutorial. If not, go back to the start of this tutorial and redeem the trial billing account</p>
+<h2 is-upgraded><strong>Step 2: Install Google Cloud CLI</strong></h2>
+<p>You&#39;ll be using Google Cloud CLI (gcloud) during this workshop. Please <a href="https://docs.cloud.google.com/sdk/docs/install-sdk" target="_blank">follow gcloud installation tutorial</a>. </p>
+<p>Once installed, login with your google cloud account.</p>
+<pre><code>gcloud auth login
+gcloud auth application-default login</code></pre>
+<p>To verify your account is connected, run:</p>
+<pre><code>gcloud auth list</code></pre>
+<p>If you see your personal gmail like below example output, all is good</p>
+<pre><code>Credentialed Accounts
+
+ACTIVE: *
+ACCOUNT: imre.nagi2812@gmail.com
+
+To set the active account, run:
+    $ gcloud config set account `ACCOUNT`</code></pre>
+<p>If not, try refreshing your browser and ensure you click the Authorize when prompted ( it might be interrupted due to connection issue )</p>
+<p>Next, we will setup google cloud project we will be using:</p>
+<pre><code>gcloud config set project &lt;YOUR_PROJECT_ID&gt;</code></pre>
+<h2 is-upgraded><strong>Step 3: Enabling Google AI API</strong></h2>
+<p>Now, we will need to enable the required APIs via the command shown below. This could take a while.</p>
+<pre><code>gcloud services enable aiplatform.googleapis.com</code></pre>
+<p>On successful execution of the command, you should see a message similar to the one shown below:</p>
+<pre><code>Operation &#34;operations/...&#34; finished successfully.
+The template agent structure is already provided for you inside part2_starter_agent directory on the cloned repository. Now, we will need to rename it first to be ready for this tutorial</code></pre>
+<p>Next, we will set up Google Workspace CLI that will be used by the agent to interact with our Google Calendar, Docs and Spreadsheet.</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Setting up Google Workspace CLI" duration="2">
+        <p>Google recently released Google Workspace CLI — one command-line tool for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin, and more. Since AI Agent is smart enough now to execute CLI commands using bash tools, we will utilize this CLI installed in our local computer. However, setting this up is not that trivial.</p>
+<aside class="warning"><p><strong>Caution:</strong> There are a lot of API availables. But during this workshop we will only use Calendar, Spreadsheet, and Docs API. If you want to integrate GWS CLI to your gmail so that your AI agent later can access your email, you can try that separately.</p>
+</aside>
+<h2 is-upgraded><strong>Step 1: Installing gws CLI</strong></h2>
+<p>Go to <code>gws</code> CLI <a href="https://github.com/googleworkspace/cli?tab=readme-ov-file#prerequisites" target="_blank">prerequisite</a> and <a href="https://github.com/googleworkspace/cli?tab=readme-ov-file#installation" target="_blank">installation</a> section to install <code>gws</code> CLI.</p>
+<h2 is-upgraded><strong>Step 2: Setting Up gws CLI</strong></h2>
+<p>We will setup <code>gws</code> CLI for the first time.</p>
+<pre><code>gws auth setup</code></pre>
+<p>If your gcloud CLI is set up correctly, you should see the <strong>Authentication</strong> step. Choose the email which you are using for this workshop.</p>
+<p class="image-container"><img style="width: 624.00px" src="img/390b6199eab3e72c.png"></p>
+<p>Next, choose your Google Cloud project where you redeemed the workshop credits.</p>
+<p class="image-container"><img style="width: 624.00px" src="img/582704723907b35f.png"></p>
+<p>Next, enable the Google APIs that we will use. For this workshop, you <strong>must </strong>enable at least the following:</p>
+<ul>
+<li><strong>✅ </strong>Google Drive</li>
+<li><strong>✅ </strong>Google Sheet</li>
+<li><strong>✅ </strong>Google Docs</li>
+<li><strong>✅ </strong>Google Calendar</li>
+</ul>
+<p class="image-container"><img style="width: 624.00px" src="img/6394427ec1dce35b.png"></p>
+<aside class="special"><p><strong>INFO:</strong> On the next steps, you will need to create Google OAuth Branding Page and OAuth Client ID and Client Secret. </p>
+</aside>
+<p>Follow the instructions on the gws setup wizard to generate OAuth credentials.</p>
+<p class="image-container"><img style="width: 624.00px" src="img/1dfe5b0cddd00d1c.png"></p>
+<p>Once it is generated, copy it to the setup wizard.</p>
+<p class="image-container"><img style="width: 315.06px" src="img/bc76f4b07dfe4b4c.png"></p>
+<p class="image-container"><img style="width: 624.00px" src="img/ea9c9cdd942ab9ec.png"></p>
+<p class="image-container"><img style="width: 468.00px" src="img/6b7be909b059a017.png"></p>
+<h2 is-upgraded><strong>Step 3: Login to gws CLI</strong></h2>
+<p>Next, you need to sign in the gws CLI with your Google Account. </p>
+<pre><code>gws auth login</code></pre>
+<p>You will be presenting with OAuth scopes you will be using for login.  Type <strong>a </strong>to clear up all options. Then enable the following options:<br></p>
+<ul>
+<li>drive</li>
+<li>documents</li>
+<li>spreadsheets</li>
+<li>calendars</li>
+</ul>
+<p class="image-container"><img style="width: 624.00px" src="img/46493aa9e47c66cf.png"></p>
+<p><br>Pressed <strong>Enter</strong>, and you should be prompted with a URL for login.</p>
+<pre><code>Open this URL in your browser to authenticate:
+
+https://accounts.google.com/o/o.........2se68vr.apps.googleusercontent.com&amp;prompt=select_account+consent
+</code></pre>
+<h2 is-upgraded><strong>Step 4: Test gws CLI</strong></h2>
+<p>Now test your <code>gws</code> CLI installation. Run the following command:</p>
+<pre><code>gws drive files list --params &#39;{&#34;pageSize&#34;: 5}&#39;</code></pre>
+<p><br>If you see the CLI returns response, then you have completed the <code>gws</code> setup properly.<br></p>
+<p class="image-container"><img style="width: 624.00px" src="img/2ba9d277a5e4947f.png"></p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Setting Up Your Environment" duration="2">
+        <h2 is-upgraded><strong>Step 1: Generate GEMINI_API_KEY from Google AI Studio</strong></h2>
+<p>Go to <a href="http://aistudio.google.com" target="_blank">aistudio.google.com</a>. </p>
+<p>Then go to <strong>Get API Key</strong> on the bottom left of the menu.</p>
+<p>Click <strong>Create API Key</strong> on the top right of the screen.</p>
+<p>Set the name of your key and choose the google project where you redeemed the token. Keep the key once it is generated. We will use it on the following steps.</p>
+<p class="image-container"><img style="width: 506.00px" src="img/3db1d0a1f1627f97.png"></p>
+<h2 is-upgraded><strong>Step 2: Install uv</strong></h2>
+<p>We will utilize Python 3.12 in this codelab and we will use uv python project manager to simplify the need of creating and managing python version and virtual environment. If you don&#39;t have uv installed, follow <a href="https://docs.astral.sh/uv/getting-started/installation/" target="_blank">official uv installation</a>.</p>
+<h2 is-upgraded><strong>Step 3: Clone Project Repository</strong></h2>
+<p>Clone the starter project for this workshop.</p>
+<pre><code>git clone https://github.com/imrenagi/simplified-claw-adk.git &amp;&amp; cd simplified-claw-adk</code></pre>
+<aside class="special"><p><strong>Note: </strong>When using uv as python project manager, it will simplify the process of creating and activating virtual environments. However every python script command will be replaced with the uv run command. E.g. <strong>uv run main.py</strong> instead of <strong>python main.py</strong></p>
+</aside>
+<p>Run this command to install the required dependencies to the virtual environment on the .venv directory.</p>
+<pre><code>uv sync --frozen</code></pre>
+<p>Check the pyproject.toml to see the declared dependencies for this tutorial which are google-adk.</p>
+<aside class="special"><p><strong>Note: </strong>Python dependencies are declared inside pyproject.toml and is version locked inside uv.lock file</p>
+</aside>
+<p>After that, copy the <code>my_assistant/.env.example</code> to <code>my_assistant/.env</code></p>
+<pre><code>cp my_assistant/.env.example my_assistant/.env</code></pre>
+<p>Make sure to update your <code>GOOGLE_API_KEY</code> with the value you generate from Google AI Studio. </p>
+<pre><code>GOOGLE_API_KEY=&lt;set your api key&gt;</code></pre>
+<h2 is-upgraded><strong>Step 4: Running the agent</strong></h2>
+<p>We will start by adding the <code>root_agent.</code> This agent is basically the main agent user will connect first when they start sending the message. For now we will just give general <code>instruction</code> for the agent.</p>
+<p>Copy the following snippet to <code>my_assistant/agent.py</code></p>
+<pre><code>from google.adk.agents.llm_agent import Agent
+
+root_agent = Agent(
+    model=&#39;gemini-3-flash-preview&#39;,
+    name=&#39;root_agent&#39;,
+    description=&#34;A comprehensive assistant capable of managing Google Workspace (Calendar, Docs, Sheets), local files, and executing system commands via bash.&#34;,
+    instruction=(
+        &#34;You are a highly capable assistant that can perform a wide range of tasks across Google Workspace, the local file system, and terminal environments. &#34;
+    ),
+)</code></pre>
+<p><br>Once you have added this, run the agent:</p>
+<pre><code>uv run adk web --port 8000</code></pre>
+<p>You should see <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> is available now for testing. Try to say &#34;<strong>hi</strong>&#34; to your agent.</p>
+<p class="image-container"><img style="width: 624.00px" src="img/ea7e44823561ff5.png"></p>
+<p>If everything runs well this far, you should be ready to start the actual workshop!</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Implementing Bash Tool" duration="2">
+        <p>Creating an AI agent which can do many things is very simple. If it is running on your computer, the only thing it needs is only the ability to execute bash/shell commands in your terminal. However,  as you might know, LLM by default has no ability to execute bash/shell commands. It can tell you what command to run, but it will need a function call or tool to execute the command.</p>
+<p>For more about function calls, you can read <a href="https://ai.google.dev/gemini-api/docs/function-calling?example=meeting" target="_blank">Function Calling with Gemini API</a>.<br><br>Let&#39;s implement step by step to create the bash tool.</p>
+<h2 is-upgraded><strong>Step 1: Create bash tool</strong></h2>
+<p>In <code>my_assistant/tools</code> directory, create a new python file named <code>bash_tools.py.</code></p>
+<p>Copy the following file content to that file.</p>
+<pre><code>import subprocess
+
+def bash(command: str) -&gt; str:
+    &#34;&#34;&#34;Executes a bash command and returns the standard output and error.
+
+    Args:
+        command: The bash command to execute.
+    &#34;&#34;&#34;
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return f&#34;Output:\n{result.stdout}\nErrors:\n{result.stderr}&#34;
+    except subprocess.CalledProcessError as e:
+        return f&#34;Execution failed with exit code {e.returncode}.\nOutput:\n{e.stdout}\nErrors:\n{e.stderr}&#34;
+    except Exception as e:
+        return f&#34;An error occurred: {str(e)}&#34;</code></pre>
+<p><br>The <code>bash</code> function above is a standard Python function definition. However, the description provided on the function body plays a very important role to help your AI agent to know when it should use this tool and what should be the argument to this function call.</p>
+<h2 is-upgraded><strong>Step 2: Update main agent to include the bash tool</strong></h2>
+<p><br>When we have the function definition for the tool ready, we should add this tool to the <code>root_agent</code> so that it can utilize this when it needs it.</p>
+<p>Now, update the <code>agent.py</code> with the following content:</p>
+<pre><code>from google.adk.agents.llm_agent import Agent
+from my_assistant.tools.bash_tool import bash
+
+root_agent = Agent(
+    model=&#39;gemini-3-flash-preview&#39;,
+    name=&#39;root_agent&#39;,
+    description=&#34;A comprehensive assistant capable of managing Google Workspace (Calendar, Docs, Sheets), local files, and executing system commands via bash.&#34;,
+    instruction=(
+        &#34;You are a highly capable assistant that can perform a wide range of tasks across Google Workspace, the local file system, and terminal environments. &#34;
+        &#34;Use &#39;bash&#39; for other terminal/system tasks.&#34;
+    ),
+    tools=[
+        bash,
+    ],
+)</code></pre>
+<p><br>What has changed here?</p>
+<ul>
+<li>We import the <code>bash</code> tool to the <code>agent.py</code></li>
+<li>We update the <code>instruction</code> so that it knows that it has a bash tool for accessing terminal.</li>
+<li>We add a new key called <code>tools</code> and add <code>bash</code> function to the array.</li>
+</ul>
+<p>By doing so, when you are asking the AI agent to perform a task which can be solved by running bash command, it will do it directly on your terminal.</p>
+<h2 is-upgraded><strong>Step 3: Testing the tools</strong></h2>
+<p>Now to update your agent, stop the old one and rerun the command:</p>
+<pre><code>uv run adk web --port 8000</code></pre>
+<p>Go to <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> and try to ask &#34;<strong>Can you please check what my ip address is?</strong>&#34;</p>
+<p>If it is working as expected you should see <code>bash</code> tool is executed and your IP address is returned.</p>
+<p class="image-container"><img style="width: 513.93px" src="img/ba433e1df5ac5999.png"></p>
+<p>To see more detail on what command is executed, click the bash button on the UI. On the left menu bar, you should see something similar to this following image.</p>
+<p>Note that the <code>curl ifconfig.me</code> command is used by <code>bash</code> to check your ip address.</p>
+<aside class="special"><p><strong>Challenges: </strong>What about your private IP address within the network? Can you get it too from the agent?</p>
+</aside>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Integrating Agent with Google Workspace Skills" duration="2">
+        <p>Agents are increasingly capable, but often don&#39;t have the context they need to do real work reliably. Skills solve this by giving agents access to procedural knowledge and company-, team-, and user-specific context they can load on demand. Agents with access to a set of skills can extend their capabilities based on the task they&#39;re working on. You can read more about <a href="https://agentskills.io/home" target="_blank">SKILL</a>.</p>
+<p>In this workshop, we will be adding Google Workspace capabilities by using recent experimental <a href="https://adk.dev/skills/" target="_blank">SKILL features in Google ADK</a>. </p>
+<p>You should have installed <code>gws</code> CLI on your computer at this point. Now, If you look at the project, you should see <code>my_assistant/skills</code> directory where all of the skills are located. You may see a lot of skills directory there. But, these are the one we will be using:</p>
+<ul>
+<li>gws-shared</li>
+<li>gws-calendar</li>
+<li>gws-calendar-agenda</li>
+<li>gws-calendar-insert</li>
+<li>gws-docs</li>
+<li>gws-docs-write</li>
+<li>gws-sheets</li>
+<li>gws-sheets-append</li>
+<li>gws-sheets-read</li>
+</ul>
+<p>These skills above will help us perform authentication, accessing calendar, creating and updating Google docs and Google sheets.</p>
+<h2 is-upgraded><strong>Adding skills to ADK</strong></h2>
+<p>In <code>my_assistant/tools</code> directory, create a new python file named <code>gws_tools.py.</code></p>
+<pre><code>import pathlib
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
+
+# Define the skills directory, relative to this tool script.
+# We go one level up to get to the my_assistant/ folder, then into /skills.
+SKILLS_DIR = pathlib.Path(__file__).parent.parent / &#34;skills&#34;
+
+def get_my_skill_toolset() -&gt; skill_toolset.SkillToolset:
+    &#34;&#34;&#34;Loads all Workspace skills into a single consolidated toolset.&#34;&#34;&#34;
+    
+    # Define all unique skills to load
+    # Proactively including all relevant Workspace skills
+    workspace_skills = [
+        # Base shared functions
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-shared&#34;),
+        
+        # Calendar
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-calendar&#34;),
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-calendar-agenda&#34;),
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-calendar-insert&#34;),
+        
+        # Docs
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-docs&#34;),
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-docs-write&#34;),
+        
+        # Sheets
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-sheets&#34;),
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-sheets-append&#34;),
+        load_skill_from_dir(SKILLS_DIR / &#34;gws-sheets-read&#34;),
+    ]
+
+    return skill_toolset.SkillToolset(
+        skills=workspace_skills
+    )
+</code></pre>
+<p>In the code above, we create <code>skill_toolset.SkillToolset</code> which contains all skills that we want to add from our internal project. If you are familiar with agent skills, it is similar to putting your skills in the <code>.agents/skills</code> directory. However, this is one of few ways defined by ADK so that your agent can load skills to your agent.</p>
+<h2 is-upgraded><strong>Update the Main Agent</strong></h2>
+<p>Now, update the <code>agent.py</code> with the following content:</p>
+<pre><code>from google.adk.agents.llm_agent import Agent
+from my_assistant.tools.bash_tool import bash
+from my_assistant.tools.gws_tool import get_my_skill_toolset
+
+# Initialize the toolsets
+my_skill_toolset = get_my_skill_toolset()
+
+root_agent = Agent(
+    model=&#39;gemini-3-flash-preview&#39;,
+    name=&#39;root_agent&#39;,
+    description=&#34;A comprehensive assistant capable of managing Google Workspace (Calendar, Docs, Sheets), local files, and executing system commands via bash.&#34;,
+    instruction=(
+        &#34;You are a highly capable assistant that can perform a wide range of tasks across Google Workspace, the local file system, and terminal environments. &#34;
+        &#34;Use &#39;bash&#39; for other terminal/system tasks.&#34;
+        &#34;Use &#39;my_skill_toolset&#39; for all Google Workspace related tasks including Calendar, Docs, and Sheets. &#34;
+    ),
+    tools=[
+        my_skill_toolset,
+        bash,
+    ],
+)</code></pre>
+<p>Now to update your agent, stop the old one and rerun the command:</p>
+<pre><code>uv run adk web --port 8000</code></pre>
+<p>Go to <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> and try to ask &#34;<strong>Can you list upcoming events in my calendar?</strong>&#34;</p>
+<p>If it works, you should see something similar to this:</p>
+<p class="image-container"><img style="width: 624.00px" src="img/33cbbf20d848c70e.png"></p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Extra Challenges" duration="0">
+        <p>When scrolling through instagram, sometimes you probably have seen ads where some random people are selling excel templates for tracking your expenses, right? <br><br>Don&#39;t you think that should be easy now?</p>
+<p>Your tasks:</p>
+<ol type="1" start="1">
+<li>Ask your agent to create a spreadsheet for tracking your expenses. You decide the prompt! Don&#39;t forget to record the spreadsheet ID for your reference or in case your agent asks for it.</li>
+<li>To make it fun, your agent should accept the image of receipt and automatically write down that information into your spreadsheet. To do this, you need to add extra instruction to your main agent so that it uses spreadsheet skills  and spreadsheet id to recap the receipt details.</li>
+<li>Try to ask your agent about your expenses on a specific day &#34;<strong>What is my expense for today?</strong>&#34;</li>
+</ol>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Congratulations" duration="0">
+        <p>Congratulations, you&#39;ve successfully built your agent whose access to your calendar, sheets or even email.! </p>
+<p>At least now, creating your agent is not as scary as it sounds, right?</p>
+<h2 is-upgraded><strong>Reference docs</strong></h2>
+<ul>
+<li><a href="https://adk.dev/skills/#get-started" target="_blank">ADK Skills</a></li>
+<li><a href="https://adk.dev/tools-custom/function-tools/" target="_blank">ADK Function Tool</a></li>
+<li><a href="https://developers.googleblog.com/developers-guide-to-building-adk-agents-with-skills/" target="_blank">Developer&#39;s Guide to Building ADK Agents with Skills</a></li>
+</ul>
+
+
+      </google-codelab-step>
+    
+  </google-codelab>
+
+  <script src="https://storage.googleapis.com/claat-public/native-shim.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/custom-elements.min.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/prettify.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/codelab-elements.js"></script>
+  <script src="//support.google.com/inapp/api.js"></script>
+
+</body>
+</html>

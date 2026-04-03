@@ -1,0 +1,26 @@
+{
+  "environment": "web",
+  "format": "html",
+  "prefix": "https://storage.googleapis.com",
+  "mainga": "UA-49880327-14",
+  "updated": "2026-04-03T01:35:26Z",
+  "id": "simplified-claw-adk",
+  "duration": 8,
+  "title": "Building Simplified Claw with ADK",
+  "authors": "Imre Nagi",
+  "summary": "In this codelab, you'll build simplified OpenClaw application that can have access to your Google Workspace (Calendar, Docs, Sheet, etc) and your host terminal",
+  "source": "1IeYqpuAPAc9R5aOfwKzgZRNZ-QSaElQTZoRi4P-vGc8",
+  "theme": "adk",
+  "status": [
+    "published"
+  ],
+  "category": [
+    "adk",
+    "gemini",
+    "aiagent"
+  ],
+  "tags": [
+    "bwai2026"
+  ],
+  "url": "simplified-claw-adk"
+}
