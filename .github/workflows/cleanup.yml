@@ -1,0 +1,57 @@
+name: Cleanup Artifact Registry
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run nightly at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # Required for Google Workload Identity Federation
+
+env:
+  PROJECT_ID: imrenagicom
+  SERVICE_NAME: googlecodelabs
+  REGION: us-central1
+
+jobs:
+  cleanup:
+    name: Cleanup Old Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Clean up unused Docker images
+        run: |
+          SERVICE_NAME="${{ env.SERVICE_NAME }}"
+          REGION="${{ env.REGION }}"
+          REPO_NAME="cloud-run-source-deploy"
+          IMAGE_PATH="${REGION}-docker.pkg.dev/${{ env.PROJECT_ID }}/${REPO_NAME}/${SERVICE_NAME}"
+          
+          echo "Fetching active image digest for service: $SERVICE_NAME"
+          ACTIVE_IMAGE=$(gcloud run services describe $SERVICE_NAME \
+            --project=${{ env.PROJECT_ID }} \
+            --region=$REGION \
+            --format="value(spec.template.spec.containers[0].image)")
+          
+          # Extract the digest portion after the '@'
+          ACTIVE_DIGEST="${ACTIVE_IMAGE#*@}"
+          echo "Currently active digest is $ACTIVE_DIGEST"
+          
+          echo "Listing all images in repository..."
+          for digest in $(gcloud artifacts docker images list $IMAGE_PATH --format="value(version)" --sort-by="~CREATE_TIME"); do
+            if [ "$digest" != "$ACTIVE_DIGEST" ]; then
+              echo "Deleting unused image $IMAGE_PATH@$digest..."
+              gcloud artifacts docker images delete "$IMAGE_PATH@$digest" --delete-tags --quiet
+            else
+              echo "Keeping active image $IMAGE_PATH@$digest"
+            fi
+          done
