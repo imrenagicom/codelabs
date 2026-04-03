@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to Cloud Run
 
 on:
   push:
@@ -7,28 +7,34 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  id-token: write # Required for Google Workload Identity Federation
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+env:
+  PROJECT_ID: imrenagicom
+  SERVICE_NAME: googlecodelabs
+  REGION: us-central1
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+
+      # Set up Workload Identity Federation or supply Service Account Key
+      # Refer: https://github.com/google-github-actions/auth
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # Automatically builds the container from the source and deploys it.
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          source: .
