@@ -12,7 +12,7 @@ permissions:
 env:
   PROJECT_ID: imrenagicom
   SERVICE_NAME: googlecodelabs
-  REGION: us-central1
+  REGION: asia-southeast1
 
 jobs:
   cleanup:
