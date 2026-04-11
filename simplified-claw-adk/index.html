@@ -206,26 +206,67 @@ root_agent = Agent(
 <p>In <code>my_assistant/tools</code> directory, create a new python file named <code>bash_tools.py.</code></p>
 <p>Copy the following file content to that file.</p>
 <pre><code>import subprocess
+import platform
+import shutil
+
 
 def bash(command: str) -&gt; str:
-    &#34;&#34;&#34;Executes a bash command and returns the standard output and error.
+    &#34;&#34;&#34;Executes a shell command and returns the standard output and error.
+
+    On macOS/Linux, commands run via the default system shell (/bin/sh).
+    On Windows, the function attempts to use Git Bash if available,
+    falling back to cmd.exe otherwise.
 
     Args:
-        command: The bash command to execute.
+        command: The shell command to execute.
     &#34;&#34;&#34;
+    system = platform.system()
+
     try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        if system == &#34;Windows&#34;:
+            bash_path = shutil.which(&#34;bash&#34;)
+            if bash_path:
+                # Use Git Bash (or WSL bash) so Unix commands work on Windows
+                result = subprocess.run(
+                    [bash_path, &#34;-c&#34;, command],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+            else:
+                # Fallback to cmd.exe
+                result = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+        else:
+            # macOS / Linux — use the default system shell
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
         return f&#34;Output:\n{result.stdout}\nErrors:\n{result.stderr}&#34;
     except subprocess.CalledProcessError as e:
-        return f&#34;Execution failed with exit code {e.returncode}.\nOutput:\n{e.stdout}\nErrors:\n{e.stderr}&#34;
+        return (
+            f&#34;Execution failed with exit code {e.returncode}.\n&#34;
+            f&#34;Output:\n{e.stdout}\n&#34;
+            f&#34;Errors:\n{e.stderr}&#34;
+        )
+    except FileNotFoundError:
+        return (
+            &#34;Error: Could not find a suitable shell to execute the command. &#34;
+            &#34;On Windows, please install Git for Windows &#34;
+            &#34;(https://gitforwindows.org/) to get a compatible bash shell.&#34;
+        )
     except Exception as e:
-        return f&#34;An error occurred: {str(e)}&#34;</code></pre>
+        return f&#34;An error occurred: {str(e)}&#34;
+</code></pre>
 <p><br>The <code>bash</code> function above is a standard Python function definition. However, the description provided on the function body plays a very important role to help your AI agent to know when it should use this tool and what should be the argument to this function call.</p>
 <h2 is-upgraded><strong>Step 2: Update main agent to include the bash tool</strong></h2>
 <p><br>When we have the function definition for the tool ready, we should add this tool to the <code>root_agent</code> so that it can utilize this when it needs it.</p>
@@ -239,7 +280,11 @@ root_agent = Agent(
     description=&#34;A comprehensive assistant capable of managing Google Workspace (Calendar, Docs, Sheets), local files, and executing system commands via bash.&#34;,
     instruction=(
         &#34;You are a highly capable assistant that can perform a wide range of tasks across Google Workspace, the local file system, and terminal environments. &#34;
-        &#34;Use &#39;bash&#39; for other terminal/system tasks.&#34;
+        &#34;Use &#39;bash&#39; for other terminal/system tasks. &#34;
+        &#34;CROSS-PLATFORM: The bash tool supports macOS, Linux, and Windows. &#34;
+        &#34;On Windows it prefers Git Bash when available. &#34;
+        &#34;When constructing shell commands, prefer POSIX-compatible syntax. &#34;
+        &#34;Avoid single-quoted JSON strings on Windows cmd.exe; use escaped double quotes instead.&#34;
     ),
     tools=[
         bash,
@@ -336,8 +381,13 @@ root_agent = Agent(
     description=&#34;A comprehensive assistant capable of managing Google Workspace (Calendar, Docs, Sheets), local files, and executing system commands via bash.&#34;,
     instruction=(
         &#34;You are a highly capable assistant that can perform a wide range of tasks across Google Workspace, the local file system, and terminal environments. &#34;
-        &#34;Use &#39;bash&#39; for other terminal/system tasks.&#34;
         &#34;Use &#39;my_skill_toolset&#39; for all Google Workspace related tasks including Calendar, Docs, and Sheets. &#34;
+        &#34;Use &#39;bash&#39; for other terminal/system tasks.&#34;
+        &#34;Use &#39;bash&#39; for other terminal/system tasks. &#34;
+        &#34;CROSS-PLATFORM: The bash tool supports macOS, Linux, and Windows. &#34;
+        &#34;On Windows it prefers Git Bash when available. &#34;
+        &#34;When constructing shell commands, prefer POSIX-compatible syntax. &#34;
+        &#34;Avoid single-quoted JSON strings on Windows cmd.exe; use escaped double quotes instead.&#34;
     ),
     tools=[
         my_skill_toolset,
