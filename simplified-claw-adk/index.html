@@ -131,6 +131,8 @@ The template agent structure is already provided for you inside part2_starter_ag
 <p class="image-container"><img style="width: 315.06px" src="img/bc76f4b07dfe4b4c.png"></p>
 <p class="image-container"><img style="width: 624.00px" src="img/ea9c9cdd942ab9ec.png"></p>
 <p class="image-container"><img style="width: 468.00px" src="img/6b7be909b059a017.png"></p>
+<p>Next, you make sure that you have published your auth consent page.</p>
+<p class="image-container"><img style="width: 624.00px" src="img/ed36eec07ccd9424.png"></p>
 <h2 is-upgraded><strong>Step 3: Login to gws CLI</strong></h2>
 <p>Next, you need to sign in the gws CLI with your Google Account. </p>
 <pre><code>gws auth login</code></pre>
@@ -220,7 +222,7 @@ root_agent = Agent(
         <p>Creating an AI agent which can do many things is very simple. If it is running on your computer, the only thing it needs is only the ability to execute bash/shell commands in your terminal. However,  as you might know, LLM by default has no ability to execute bash/shell commands. It can tell you what command to run, but it will need a function call or tool to execute the command.</p>
 <p>For more about function calls, you can read <a href="https://ai.google.dev/gemini-api/docs/function-calling?example=meeting" target="_blank">Function Calling with Gemini API</a>.<br><br>Let&#39;s implement step by step to create the bash tool.</p>
 <h2 is-upgraded><strong>Step 1: Create bash tool</strong></h2>
-<p>In <code>my_assistant/tools</code> directory, create a new python file named <code>bash_tools.py.</code></p>
+<p>In <code>my_assistant/tools</code> directory, create a new python file named <code>bash_tool.py.</code></p>
 <p>Copy the following file content to that file.</p>
 <pre><code>import subprocess
 
@@ -300,7 +302,7 @@ root_agent = Agent(
 </ul>
 <p>These skills above will help us perform authentication, accessing calendar, creating and updating Google docs and Google sheets.</p>
 <h2 is-upgraded><strong>Adding skills to ADK</strong></h2>
-<p>In <code>my_assistant/tools</code> directory, create a new python file named <code>gws_tools.py.</code></p>
+<p>In <code>my_assistant/tools</code> directory, create a new python file named <code>gws_tool.py.</code></p>
 <pre><code>import pathlib
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
